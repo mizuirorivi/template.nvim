@@ -9,6 +9,10 @@ local action_state = require('telescope.actions.state')
 local temp_list = function(opts)
   local temp = require('template')
   local list = temp.get_temp_list()
+  if vim.g.is_project_template then
+    list = temp.get_all_list()
+  end
+
   local curbuf = vim.api.nvim_get_current_buf()
   if opts.filter_ft then
     return list[vim.bo[curbuf].filetype] or {}

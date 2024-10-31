@@ -3,7 +3,7 @@ if vim.g.load_template then
 end
 
 vim.g.load_template = true
-
+vim.g.is_project_template = false
 local api = vim.api
 
 api.nvim_create_user_command('Template', function(args)
@@ -18,7 +18,9 @@ end, {
     end
 
     local list = temp.get_temp_list()
-
+    if vim.g.is_project_template then
+      list = temp.get_all_list()
+    end
     local function match_item(ft)
       return vim.tbl_map(function(s)
         s = vim.fn.fnamemodify(s, ':t:r')

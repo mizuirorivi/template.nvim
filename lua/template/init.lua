@@ -1,4 +1,5 @@
 local temp = {}
+
 local uv, api, fn, fs = vim.loop, vim.api, vim.fn, vim.fs
 local sep = uv.os_uname().sysname == 'Windows_NT' and '\\' or '/'
 
@@ -102,6 +103,59 @@ function temp.get_temp_list()
   return res
 end
 
+function temp.get_temp_project_list()
+  local project_root = require('nvim-rooter').get_root()
+  local tempdir = '.template'
+  temp.project_template = fs.normalize(fs.normalize(fs.joinpath(project_root, tempdir)))
+  local res = {}
+
+  local result = vim.fs.find(function(name)
+    return name:match('.*')
+  end, { type = 'file', path = temp.project_template, limit = math.huge })
+
+  local link = vim.fs.find(function(name)
+    return name:match('.*')
+  end, { type = 'link', path = temp.project_template, limit = math.huge })
+
+  result = vim.list_extend(result, link)
+
+  for _, name in ipairs(result) do
+    local ft = vim.filetype.match({ filename = name })
+    if ft == 'smarty' then
+      local first_row = vim.fn.readfile(name, '', 1)[1]
+      ft = vim.split(first_row, '%s')[2]
+    end
+
+    if ft then
+      if not res[ft] then
+        res[ft] = {}
+      end
+      res[ft][#res[ft] + 1] = name
+    else
+      vim.notify('[Template.nvim] Could not find the filetype of template file ' .. name, vim.log.levels.INFO)
+    end
+  end
+
+  return res
+end
+
+local function concat_list(...)
+  local res = {}
+  for _,lst in ipairs({...}) do
+    for sf,v in pairs(lst) do
+      res[sf] = vim.list_extend(res[sf] or {}, v)
+    end
+  end
+
+  return res
+end
+
+function temp.get_all_list()
+  local list = temp.get_temp_list()
+  local project_list = temp.get_temp_project_list()
+  local res = concat_list(list, project_list)
+  return res
+end
 local function expand_expressions(line)
   local cursor
 
@@ -162,6 +216,10 @@ end
 
 local function get_tpl(buf, name)
   local list = temp.get_temp_list()
+  if vim.g.is_project_template then
+    list = temp.get_all_list()
+  end
+
   if not list[vim.bo[buf].filetype] then
     return
   end
@@ -233,6 +291,9 @@ end
 
 function temp.in_template(buf)
   local list = temp.get_temp_list()
+  if vim.g.is_project_template then
+    list = temp.get_all_list()
+  end
   if vim.tbl_isempty(list) or not list[vim.bo[buf].filetype] then
     return false
   end
@@ -262,8 +323,11 @@ function temp.setup(config)
 
   temp.author = config.author and config.author or ''
   temp.email = config.email and config.email or ''
-
-  local fts = vim.tbl_keys(temp.get_temp_list())
+  local list = temp.get_temp_list()
+  if vim.g.is_project_template then
+    list = temp.get_all_list()
+  end
+  local fts = vim.tbl_keys(list)
 
   if #fts == 0 then
     vim.notify('[template.nvim] does not get the filetype in template dir')

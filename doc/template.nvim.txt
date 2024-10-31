@@ -44,8 +44,17 @@ OPTIONS                                                *template.nvim-options*
         email    -- email address
     }
 <
+------------------------------------------------------------------------------
+						    *is_project_template*
+Values: true or false.
+Default: false.
 
+If this flag is set to true, the project root is recognized and the '.template' directory directly under the root is also recognized as a template directory
 
+```
+vim.g.is_project_template = true
+```
+[!] This is an experimental feature
 BASIC USAGE                                        *template.nvim-basic-usage*
 
 
